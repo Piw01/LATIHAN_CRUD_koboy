@@ -1,0 +1,29 @@
+# Enable CORS for API endpoints
+<IfModule mod_headers.c>
+    # Allow requests from any origin (ubah sesuai kebutuhan)
+    Header set Access-Control-Allow-Origin "*"
+    
+    # Allow credentials
+    Header set Access-Control-Allow-Credentials "true"
+    
+    # Allow specific methods
+    Header set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    
+    # Allow specific headers
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    
+    # Cache preflight requests for 1 hour
+    Header set Access-Control-Max-Age "3600"
+</IfModule>
+
+# Handle preflight OPTIONS requests
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>

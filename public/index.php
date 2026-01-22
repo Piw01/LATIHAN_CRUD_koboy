@@ -82,11 +82,6 @@ if ($page === 'login') {
 }
 else{
     
-}
-
-    echo "Halaman tidak ditemukan";
-
-{
 
 }    
 

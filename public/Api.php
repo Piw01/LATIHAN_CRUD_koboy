@@ -1,28 +1,46 @@
 <?php
-// API endpoint mahasiswa (JSON only)
+/**
+ * API endpoint mahasiswa (JSON only)
+ * Endpoint: /api.php
+ */
+
 session_start();
 
-// DEBUG (hapus di production)
+// CORS Headers - PENTING untuk akses dari domain berbeda
+header('Access-Control-Allow-Origin: *'); // Atau ganti dengan domain frontend Anda
+header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Credentials: true');
+header('Content-Type: application/json; charset=utf-8');
+
+// Handle preflight OPTIONS request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
+// Tampilkan error saat development (NONAKTIFKAN di production!)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-// Semua response JSON
-header('Content-Type: application/json; charset=utf-8');
-
-// ===== LOAD CONTROLLER (PATH BENAR) =====
+// Load controller
 require_once __DIR__ . '/../src/controller/ApiMahasiswaController.php';
 
 use src\controller\ApiMahasiswaController;
 
-// ===== HELPER RESPONSE =====
+/**
+ * Helper kirim respon JSON
+ */
 function respond(int $status, array $body): void
 {
     http_response_code($status);
-    echo json_encode($body);
+    echo json_encode($body, JSON_PRETTY_PRINT);
     exit;
 }
 
-// ===== HELPER REQUEST BODY (JSON) =====
+/**
+ * Helper untuk ambil input body (WAJIB JSON)
+ */
 function getRequestBody(): array
 {
     $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
@@ -48,16 +66,16 @@ function getRequestBody(): array
     if (json_last_error() !== JSON_ERROR_NONE) {
         respond(400, [
             'success' => false,
-            'message' => 'Format JSON tidak valid'
+            'message' => 'Format JSON tidak valid: ' . json_last_error_msg()
         ]);
     }
 
     return $json;
 }
 
-// ===== BASIC ROUTING =====
+// Routing
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$nim    = $_GET['nim'] ?? null;
+$nim = $_GET['nim'] ?? null;
 
 // Init controller
 $controller = new ApiMahasiswaController();
@@ -65,7 +83,7 @@ $controller = new ApiMahasiswaController();
 try {
     switch ($method) {
 
-        // ===== GET =====
+        // GET - Ambil semua atau satu data
         case 'GET':
             if ($nim) {
                 $result = $controller->show($nim);
@@ -75,12 +93,13 @@ try {
             respond($result['status'], $result['body']);
             break;
 
-        // ===== POST =====
+        // POST - Tambah data baru
         case 'POST':
+            // Cek auth (opsional, sesuaikan kebutuhan)
             if (empty($_SESSION['user'])) {
                 respond(401, [
                     'success' => false,
-                    'message' => 'Unauthorized, silakan login'
+                    'message' => 'Unauthorized. Silakan login terlebih dahulu.'
                 ]);
             }
 
@@ -89,20 +108,20 @@ try {
             respond($result['status'], $result['body']);
             break;
 
-        // ===== PUT / PATCH =====
+        // PUT/PATCH - Update data
         case 'PUT':
         case 'PATCH':
             if (empty($_SESSION['user'])) {
                 respond(401, [
                     'success' => false,
-                    'message' => 'Unauthorized, silakan login'
+                    'message' => 'Unauthorized. Silakan login terlebih dahulu.'
                 ]);
             }
 
             if (!$nim) {
                 respond(400, [
                     'success' => false,
-                    'message' => 'Parameter nim wajib'
+                    'message' => 'Parameter nim wajib diisi'
                 ]);
             }
 
@@ -111,19 +130,19 @@ try {
             respond($result['status'], $result['body']);
             break;
 
-        // ===== DELETE =====
+        // DELETE - Hapus data
         case 'DELETE':
             if (empty($_SESSION['user'])) {
                 respond(401, [
                     'success' => false,
-                    'message' => 'Unauthorized, silakan login'
+                    'message' => 'Unauthorized. Silakan login terlebih dahulu.'
                 ]);
             }
 
             if (!$nim) {
                 respond(400, [
                     'success' => false,
-                    'message' => 'Parameter nim wajib'
+                    'message' => 'Parameter nim wajib diisi'
                 ]);
             }
 
@@ -141,7 +160,8 @@ try {
 } catch (Throwable $e) {
     respond(500, [
         'success' => false,
-        'message' => $e->getMessage(),
+        'message' => 'Internal server error',
+        'error' => $e->getMessage(),
         'file' => $e->getFile(),
         'line' => $e->getLine()
     ]);
